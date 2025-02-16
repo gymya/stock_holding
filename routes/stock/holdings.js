@@ -36,11 +36,10 @@ const getVolKData = async (symbol) => {
           break;
       }
     }
-    VolKData.totalDifferenceVolK1D =
-      data?.list[0]?.totalDifferenceVolK || 'failed';
-    VolKData.totalOverbuyVolK = data?.list[0]?.totalOverbuyVolK || 'failed';
-    VolKData.totalOversellVolK = data?.list[0]?.totalOversellVolK || 'failed';
-    VolKData.tradeVolumeRate = data?.list[0]?.tradeVolumeRate || 'failed';
+    VolKData.totalDifferenceVolK1D = data?.list[0]?.totalDifferenceVolK;
+    VolKData.totalOverbuyVolK = data?.list[0]?.totalOverbuyVolK;
+    VolKData.totalOversellVolK = data?.list[0]?.totalOversellVolK;
+    VolKData.tradeVolumeRate = data?.list[0]?.tradeVolumeRate;
 
     return new Promise((resolve) => {
       resolve(VolKData);
