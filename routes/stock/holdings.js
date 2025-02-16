@@ -10,13 +10,13 @@ const getVolKData = async (symbol) => {
   try {
     const VolKData = {
       symbol,
-      totalOverbuyVolK: NaN,
-      totalOversellVolK: NaN,
-      tradeVolumeRate: NaN,
-      totalDifferenceVolK1D: NaN,
-      totalDifferenceVolK5D: NaN,
-      totalDifferenceVolK10D: NaN,
-      totalDifferenceVolK20D: NaN,
+      totalOverbuyVolK: 0,
+      totalOversellVolK: 0,
+      tradeVolumeRate: 0,
+      totalDifferenceVolK1D: 0,
+      totalDifferenceVolK5D: 0,
+      totalDifferenceVolK10D: 0,
+      totalDifferenceVolK20D: 0,
     };
     let sumDifferenceVolK = 0;
     const { data } = await axios.get(
