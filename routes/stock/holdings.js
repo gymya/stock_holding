@@ -4,6 +4,38 @@ const convertXLSX = require('@/middleware/convertXLSX');
 
 var router = express.Router();
 
+// 上市股票代號
+const getStockSymbol = async (req, res, next) => {
+  try {
+    const { data } = await axios.get(
+      'https://openapi.twse.com.tw/v1/opendata/t187ap03_L'
+    );
+    const symbolArray = data.map((stock) => stock.公司代號);
+
+    res.symbolArray = symbolArray;
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).send('Error');
+  }
+};
+
+// 上櫃股票代號
+const getOTCStockSymbol = async (req, res, next) => {
+  try {
+    const { data } = await axios.get(
+      'https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O'
+    );
+    const symbolArray = data.map((stock) => stock.SecuritiesCompanyCode);
+
+    res.symbolArray = symbolArray;
+    next();
+  } catch (error) {
+    console.log(error);
+    res.status(500).send('Error');
+  }
+};
+
 const getVolKData = async (symbol) => {
   console.log(`Fetching ${symbol} data...`);
 
@@ -61,28 +93,16 @@ const getVolKData = async (symbol) => {
   }
 };
 
-const getStockSymbol = async (req, res, next) => {
-  try {
-    const { data } = await axios.get(
-      'https://openapi.twse.com.tw/v1/opendata/t187ap03_L'
-    );
-    const symbolArray = data.map((stock) => stock.公司代號);
-
-    res.symbolArray = symbolArray;
-    next();
-  } catch (error) {
-    console.log(error);
-    res.status(500).send('Error');
-  }
-};
-
 const getBrokerTrades = async (req, res, next) => {
   res.VolKData = [];
   // forEach is not working async, so we use for loop
-  for (let i = 0; i < res.symbolArray.length; i++) {
-    const VolKData = await getVolKData(res.symbolArray[i]);
-    res.VolKData.push(VolKData);
-  }
+  // for (let i = 0; i < res.symbolArray.length; i++) {
+  //   const VolKData = await getVolKData(res.symbolArray[i]);
+  //   res.VolKData.push(VolKData);
+  // }
+  const promises = res.symbolArray.map((symbol) => getVolKData(symbol));
+  res.VolKData = await Promise.all(promises);
+
   next();
 };
 
@@ -100,7 +120,22 @@ router.get('/holdings', holdingsMiddleware, (req, res, next) => {
   res.setHeader(
     'Content-Disposition',
     `attachment; filename=${
-      formattedDate + encodeURIComponent('主力資料')
+      formattedDate + encodeURIComponent('上市主力資料')
+    }.xlsx`
+  );
+  res.send(res.excelBuffer);
+});
+
+const OTCholdingsMiddleware = [getOTCStockSymbol, getBrokerTrades, createXLSX];
+
+router.get('/OTCholdings', OTCholdingsMiddleware, (req, res, next) => {
+  const now = new Date();
+  const formattedDate = now.toISOString().slice(0, 10).replace(/-/g, '-');
+
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename=${
+      formattedDate + encodeURIComponent('上櫃主力資料')
     }.xlsx`
   );
   res.send(res.excelBuffer);
