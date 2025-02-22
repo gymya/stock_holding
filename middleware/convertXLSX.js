@@ -1,5 +1,6 @@
+import XLSX from 'xlsx';
+
 const convertXLSX = (jsonData) => {
-  const XLSX = require('xlsx');
   const workbook = XLSX.utils.book_new();
 
   const ws = XLSX.utils.json_to_sheet(jsonData);
@@ -11,4 +12,4 @@ const convertXLSX = (jsonData) => {
   return excelBuffer;
 };
 
-module.exports = convertXLSX;
+export default convertXLSX;

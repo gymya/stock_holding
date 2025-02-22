@@ -1,8 +1,9 @@
-var express = require('express');
-const axios = require('axios');
-const convertXLSX = require('@/middleware/convertXLSX');
+import express from 'express';
+import axios from 'axios';
+import pLimit from 'p-limit';
+import convertXLSX from '../../middleware/convertXLSX.js';
 
-var router = express.Router();
+const router = express.Router();
 
 // 上市股票代號
 const getStockSymbol = async (req, res, next) => {
@@ -100,7 +101,11 @@ const getBrokerTrades = async (req, res, next) => {
   //   const VolKData = await getVolKData(res.symbolArray[i]);
   //   res.VolKData.push(VolKData);
   // }
-  const promises = res.symbolArray.map((symbol) => getVolKData(symbol));
+
+  const limit = pLimit(5); // Limit to 5 concurrent requests
+  const promises = res.symbolArray.map((symbol) =>
+    limit(() => getVolKData(symbol))
+  );
   res.VolKData = await Promise.all(promises);
 
   next();
@@ -141,4 +146,4 @@ router.get('/OTCholdings', OTCholdingsMiddleware, (req, res, next) => {
   res.send(res.excelBuffer);
 });
 
-module.exports = router;
+export default router;
