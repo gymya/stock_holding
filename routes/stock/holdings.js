@@ -102,7 +102,7 @@ const getBrokerTrades = async (req, res, next) => {
   //   res.VolKData.push(VolKData);
   // }
 
-  const limit = pLimit(5); // Limit to 5 concurrent requests
+  const limit = pLimit(3); // Limit to 3 concurrent requests
   const promises = res.symbolArray.map((symbol) =>
     limit(() => getVolKData(symbol))
   );
