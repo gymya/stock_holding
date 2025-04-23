@@ -37,63 +37,71 @@ const getOTCStockSymbol = async (req, res, next) => {
   }
 };
 
+// 取得單筆股票資訊
 const getVolKData = async (symbol) => {
   console.log(`Fetching ${symbol} data...`);
 
-  try {
-    const VolKData = {
-      symbol,
-      totalOverbuyVolK: 0,
-      totalOversellVolK: 0,
-      tradeVolumeRate: 0,
-      totalDifferenceVolK1D: 0,
-      totalDifferenceVolK5D: 0,
-      totalDifferenceVolK10D: 0,
-      totalDifferenceVolK20D: 0,
-    };
-    let sumDifferenceVolK = 0;
-    const { data } = await axios.get(
-      `https://tw.stock.yahoo.com/_td-stock/api/resource/StockServices.brokerTrades;limit=20;sortBy=-date;symbol=${symbol}.TW`
-    );
-    for (let i = 0; i < data?.list.length; i++) {
-      sumDifferenceVolK += data?.list[i]?.totalDifferenceVolK;
-      switch (i) {
-        case 4:
-          VolKData.totalDifferenceVolK5D = sumDifferenceVolK;
-          break;
-        case 9:
-          VolKData.totalDifferenceVolK10D = sumDifferenceVolK;
-          break;
-        case 19:
-          VolKData.totalDifferenceVolK20D = sumDifferenceVolK;
-          break;
+  const fetchWithRetry = async (retries = 3, delay = 2000) => {
+    try {
+      const VolKData = {
+        symbol,
+        totalOverbuyVolK: 0,
+        totalOversellVolK: 0,
+        tradeVolumeRate: 0,
+        totalDifferenceVolK1D: 0,
+        totalDifferenceVolK5D: 0,
+        totalDifferenceVolK10D: 0,
+        totalDifferenceVolK20D: 0,
+      };
+      let sumDifferenceVolK = 0;
+      const { data } = await axios.get(
+        `https://tw.stock.yahoo.com/_td-stock/api/resource/StockServices.brokerTrades;limit=20;sortBy=-date;symbol=${symbol}.TW`
+      );
+      for (let i = 0; i < data?.list.length; i++) {
+        sumDifferenceVolK += data?.list[i]?.totalDifferenceVolK;
+        switch (i) {
+          case 4:
+            VolKData.totalDifferenceVolK5D = sumDifferenceVolK;
+            break;
+          case 9:
+            VolKData.totalDifferenceVolK10D = sumDifferenceVolK;
+            break;
+          case 19:
+            VolKData.totalDifferenceVolK20D = sumDifferenceVolK;
+            break;
+        }
+      }
+      VolKData.totalDifferenceVolK1D = data?.list[0]?.totalDifferenceVolK;
+      VolKData.totalOverbuyVolK = data?.list[0]?.totalOverbuyVolK;
+      VolKData.totalOversellVolK = data?.list[0]?.totalOversellVolK;
+      VolKData.tradeVolumeRate = data?.list[0]?.tradeVolumeRate;
+
+      return VolKData;
+    } catch (error) {
+      if (retries > 0) {
+        console.log(`Retrying ${symbol}... (${3 - retries + 1})`);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return fetchWithRetry(retries - 1, delay * 2);
+      } else {
+        console.log(`Failed to fetch ${symbol} after retries.`);
+        return {
+          symbol,
+          totalOverbuyVolK: 'failed',
+          totalOversellVolK: 'failed',
+          tradeVolumeRate: 'failed',
+          totalDifferenceVolK1D: 'failed',
+          totalDifferenceVolK5D: 'failed',
+          totalDifferenceVolK10D: 'failed',
+          totalDifferenceVolK20D: 'failed',
+        };
       }
     }
-    VolKData.totalDifferenceVolK1D = data?.list[0]?.totalDifferenceVolK;
-    VolKData.totalOverbuyVolK = data?.list[0]?.totalOverbuyVolK;
-    VolKData.totalOversellVolK = data?.list[0]?.totalOversellVolK;
-    VolKData.tradeVolumeRate = data?.list[0]?.tradeVolumeRate;
+  };
 
-    return new Promise((resolve) => {
-      resolve(VolKData);
-    });
-  } catch (error) {
-    console.log(error);
-    return new Promise((resolve) => {
-      resolve({
-        symbol,
-        totalOverbuyVolK: 'failed',
-        totalOversellVolK: 'failed',
-        tradeVolumeRate: 'failed',
-        totalDifferenceVolK1D: 'failed',
-        totalDifferenceVolK5D: 'failed',
-        totalDifferenceVolK10D: 'failed',
-        totalDifferenceVolK20D: 'failed',
-      });
-    });
-  }
+  return fetchWithRetry();
 };
 
+// 取得券商交易資料
 const getBrokerTrades = async (req, res, next) => {
   res.VolKData = [];
   // forEach is not working async, so we use for loop
